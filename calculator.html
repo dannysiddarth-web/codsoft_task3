@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .calculator {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .display {
+            background: #000;
+            color: #fff;
+            font-size: 2rem;
+            font-weight: 300;
+            text-align: right;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            height: 60px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .number, .decimal {
+            background: #333;
+            color: #fff;
+        }
+
+        .number:hover, .decimal:hover {
+            background: #444;
+        }
+
+        .operator {
+            background: #ff9500;
+            color: #fff;
+        }
+
+        .operator:hover {
+            background: #ffad33;
+        }
+
+        .operator.active {
+            background: #fff;
+            color: #ff9500;
+        }
+
+        .clear {
+            background: #a6a6a6;
+            color: #000;
+        }
+
+        .clear:hover {
+            background: #d1d1d1;
+        }
+
+        .equals {
+            background: #ff9500;
+            color: #fff;
+        }
+
+        .equals:hover {
+            background: #ffad33;
+        }
+
+        .zero {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 350px) {
+            .calculator {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            .display {
+                font-size: 1.5rem;
+                padding: 15px;
+                min-height: 60px;
+            }
+            
+            button {
+                height: 50px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display" id="display">0</div>
+        <div class="buttons">
+            <button class="clear" onclick="clearAll()">AC</button>
+            <button class="clear" onclick="clearEntry()">CE</button>
+            <button class="operator" onclick="inputOperator('/')" data-operator="/">÷</button>
+            <button class="operator" onclick="inputOperator('*')" data-operator="*">×</button>
+            
+            <button class="number" onclick="inputNumber('7')">7</button>
+            <button class="number" onclick="inputNumber('8')">8</button>
+            <button class="number" onclick="inputNumber('9')">9</button>
+            <button class="operator" onclick="inputOperator('-')" data-operator="-">−</button>
+            
+            <button class="number" onclick="inputNumber('4')">4</button>
+            <button class="number" onclick="inputNumber('5')">5</button>
+            <button class="number" onclick="inputNumber('6')">6</button>
+            <button class="operator" onclick="inputOperator('+')" data-operator="+">+</button>
+            
+            <button class="number" onclick="inputNumber('1')">1</button>
+            <button class="number" onclick="inputNumber('2')">2</button>
+            <button class="number" onclick="inputNumber('3')">3</button>
+            <button class="equals" onclick="calculate()" rowspan="2">=</button>
+            
+            <button class="number zero" onclick="inputNumber('0')">0</button>
+            <button class="decimal" onclick="inputDecimal()">.</button>
+        </div>
+    </div>
+
+    <script>
+        let display = document.getElementById('display');
+        let currentInput = '0';
+        let operator = null;
+        let previousInput = null;
+        let waitingForOperand = false;
+
+        function updateDisplay() {
+            display.textContent = currentInput;
+        }
+
+        function inputNumber(num) {
+            if (waitingForOperand) {
+                currentInput = num;
+                waitingForOperand = false;
+            } else {
+                currentInput = currentInput === '0' ? num : currentInput + num;
+            }
+            updateDisplay();
+        }
+
+        function inputDecimal() {
+            if (waitingForOperand) {
+                currentInput = '0.';
+                waitingForOperand = false;
+            } else if (currentInput.indexOf('.') === -1) {
+                currentInput += '.';
+            }
+            updateDisplay();
+        }
+
+        function inputOperator(nextOperator) {
+            const inputValue = parseFloat(currentInput);
+
+            // Remove active class from all operator buttons
+            const operatorButtons = document.querySelectorAll('.operator');
+            operatorButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Add active class to clicked operator
+            const clickedOperator = document.querySelector(`[data-operator="${nextOperator}"]`);
+            if (clickedOperator) {
+                clickedOperator.classList.add('active');
+            }
+
+            if (previousInput === null) {
+                previousInput = inputValue;
+            } else if (operator) {
+                const currentValue = previousInput || 0;
+                const newValue = performCalculation(currentValue, inputValue, operator);
+
+                if (newValue === 'Error') {
+                    currentInput = 'Error';
+                    updateDisplay();
+                    return;
+                }
+
+                currentInput = String(newValue);
+                previousInput = newValue;
+                updateDisplay();
+            }
+
+            waitingForOperand = true;
+            operator = nextOperator;
+        }
+
+        function performCalculation(firstOperand, secondOperand, operator) {
+            switch (operator) {
+                case '+':
+                    return firstOperand + secondOperand;
+                case '-':
+                    return firstOperand - secondOperand;
+                case '*':
+                    return firstOperand * secondOperand;
+                case '/':
+                    if (secondOperand === 0) {
+                        return 'Error';
+                    }
+                    return firstOperand / secondOperand;
+                default:
+                    return secondOperand;
+            }
+        }
+
+        function calculate() {
+            const inputValue = parseFloat(currentInput);
+
+            if (previousInput !== null && operator) {
+                const newValue = performCalculation(previousInput, inputValue, operator);
+                
+                if (newValue === 'Error') {
+                    currentInput = 'Error';
+                } else {
+                    currentInput = String(newValue);
+                    previousInput = null;
+                    operator = null;
+                    waitingForOperand = true;
+                }
+
+                // Remove active class from all operator buttons
+                const operatorButtons = document.querySelectorAll('.operator');
+                operatorButtons.forEach(btn => btn.classList.remove('active'));
+
+                updateDisplay();
+            }
+        }
+
+        function clearAll() {
+            currentInput = '0';
+            previousInput = null;
+            operator = null;
+            waitingForOperand = false;
+
+            // Remove active class from all operator buttons
+            const operatorButtons = document.querySelectorAll('.operator');
+            operatorButtons.forEach(btn => btn.classList.remove('active'));
+
+            updateDisplay();
+        }
+
+        function clearEntry() {
+            currentInput = '0';
+            updateDisplay();
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+
+            if (key >= '0' && key <= '9') {
+                inputNumber(key);
+            } else if (key === '.') {
+                inputDecimal();
+            } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                inputOperator(key);
+            } else if (key === 'Enter' || key === '=') {
+                event.preventDefault();
+                calculate();
+            } else if (key === 'Escape') {
+                clearAll();
+            } else if (key === 'Backspace') {
+                clearEntry();
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+</html>
